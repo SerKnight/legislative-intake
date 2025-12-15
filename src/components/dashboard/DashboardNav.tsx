@@ -5,23 +5,28 @@ import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { SessionSelector } from "@/components/sessions/SessionSelector"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/bills", label: "Bills" },
+  { href: "/bills/upload", label: "Upload Bill" },
 ]
 
 export function DashboardNav({ user }: { user: any }) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 border-r bg-muted/50">
+    <aside className="w-64 border-r bg-muted/50 flex flex-col">
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/dashboard" className="text-xl font-bold">
           Legislative Intake
         </Link>
       </div>
-      <nav className="p-4">
+      <div className="p-4 border-b">
+        <SessionSelector />
+      </div>
+      <nav className="p-4 flex-1">
         <ul className="space-y-2">
           {navItems.map((item) => (
             <li key={item.href}>
@@ -40,7 +45,7 @@ export function DashboardNav({ user }: { user: any }) {
           ))}
         </ul>
       </nav>
-      <div className="absolute bottom-0 w-64 border-t p-4">
+      <div className="border-t p-4">
         <div className="mb-2 text-sm">
           <div className="font-medium">{user?.name || user?.email}</div>
           <div className="text-xs text-muted-foreground">{user?.email}</div>

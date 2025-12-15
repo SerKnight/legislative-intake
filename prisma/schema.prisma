@@ -26,6 +26,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   organizations OrganizationMember[]
+  userSessions  UserSession[]
 
   @@index([email])
 }
@@ -69,16 +70,17 @@ model VerificationToken {
 }
 
 model Jurisdiction {
-  id          String   @id @default(cuid())
-  name        String
-  type        JurisdictionType
-  code        String   @unique
-  website     String?
-  apiEndpoint String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String              @id @default(cuid())
+  name              String
+  type              JurisdictionType
+  code              String              @unique
+  website           String?
+  apiEndpoint       String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  bills       Bill[]
+  bills              Bill[]
+  legislativeSessions LegislativeSession[]
 
   @@index([code])
 }
@@ -91,7 +93,7 @@ model Bill {
   fullText        String?       @db.Text
   status          BillStatus    @default(INTRODUCED)
   jurisdictionId  String
-  session         String?
+  sessionId       String?
   introducedDate  DateTime?
   lastActionDate  DateTime?
   lastAction      String?
@@ -108,17 +110,33 @@ model Bill {
   keyProvisions   String[]
   impactAnalysis  String?       @db.Text
 
+  // Staff workflow fields
+  assignedTo      String?
+  priority        BillPriority  @default(NORMAL)
+  fiscalNote      String?       @db.Text
+  costAnalysis    String?       @db.Text
+  estimatedCost   Decimal?      @db.Decimal(15, 2)
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   jurisdiction    Jurisdiction  @relation(fields: [jurisdictionId], references: [id])
+  legislativeSession LegislativeSession? @relation(fields: [sessionId], references: [id])
   versions        BillVersion[]
   amendments      Amendment[]
+  categories      BillCategory[]
+  relatedBills    BillRelation[]
+  companionBills  BillRelation[] @relation("CompanionBills")
+  hearings        HearingBill[]
+  votes           Vote[]
 
   @@index([jurisdictionId])
   @@index([status])
   @@index([introducedDate])
   @@index([billNumber])
+  @@index([sessionId])
+  @@index([assignedTo])
+  @@index([priority])
 }
 
 model BillVersion {
@@ -218,5 +236,178 @@ enum MemberRole {
   MEMBER
   ADMIN
   OWNER
+}
+
+model LegislativeSession {
+  id              String   @id @default(cuid())
+  name            String
+  identifier      String   @unique
+  jurisdictionId  String
+  startDate       DateTime
+  endDate         DateTime?
+  status          SessionStatus @default(ACTIVE)
+  description     String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  jurisdiction    Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  categories      SessionCategory[]
+  bills           Bill[]
+  hearings        Hearing[]
+  userSessions    UserSession[]
+  
+  @@index([jurisdictionId])
+  @@index([status])
+}
+
+model SessionCategory {
+  id          String   @id @default(cuid())
+  sessionId   String
+  name        String
+  slug        String
+  description String?
+  color       String?
+  order       Int      @default(0)
+  
+  session     LegislativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  bills       BillCategory[]
+  
+  @@unique([sessionId, slug])
+  @@index([sessionId])
+}
+
+model UserSession {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionId   String
+  role        SessionRole @default(VIEWER)
+  isActive    Boolean  @default(false)
+  joinedAt    DateTime @default(now())
+  
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session     LegislativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model BillCategory {
+  id          String   @id @default(cuid())
+  billId      String
+  categoryId  String
+  
+  bill        Bill            @relation(fields: [billId], references: [id], onDelete: Cascade)
+  category    SessionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  @@unique([billId, categoryId])
+}
+
+model BillRelation {
+  id            String   @id @default(cuid())
+  billId        String
+  relatedBillId String
+  relationType  BillRelationType
+  
+  bill          Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  relatedBill   Bill @relation("CompanionBills", fields: [relatedBillId], references: [id], onDelete: Cascade)
+  
+  @@unique([billId, relatedBillId])
+  @@index([billId])
+}
+
+model Hearing {
+  id          String   @id @default(cuid())
+  sessionId   String
+  title       String
+  date        DateTime
+  location    String?
+  description String?  @db.Text
+  status      HearingStatus @default(SCHEDULED)
+  
+  session     LegislativeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  bills       HearingBill[]
+  
+  @@index([sessionId])
+  @@index([date])
+}
+
+model HearingBill {
+  id        String   @id @default(cuid())
+  hearingId String
+  billId    String
+  
+  hearing   Hearing @relation(fields: [hearingId], references: [id], onDelete: Cascade)
+  bill      Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  @@unique([hearingId, billId])
+}
+
+model Vote {
+  id          String   @id @default(cuid())
+  billId      String
+  voteType    VoteType
+  date        DateTime
+  chamber     String?
+  result      VoteResult
+  yeas        Int      @default(0)
+  nays        Int      @default(0)
+  abstains    Int      @default(0)
+  details     String?  @db.Text
+  
+  bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  @@index([billId])
+  @@index([date])
+}
+
+enum SessionStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum SessionRole {
+  VIEWER
+  CONTRIBUTOR
+  MANAGER
+  ADMIN
+}
+
+enum BillPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum BillRelationType {
+  COMPANION
+  RELATED
+  AMENDMENT_TO
+  REPLACES
+  CONFLICTS_WITH
+}
+
+enum HearingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+enum VoteType {
+  COMMITTEE
+  FLOOR
+  FINAL
+}
+
+enum VoteResult {
+  PASSED
+  FAILED
+  TIED
 }
 
