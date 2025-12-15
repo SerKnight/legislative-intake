@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Steps } from "@/components/ui/steps"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -61,6 +61,20 @@ const stepDetails = [
 export function HowItWorks() {
   const [activeStep, setActiveStep] = useState(0)
 
+  const nextStep = useCallback(() => {
+    setActiveStep((prev) => (prev + 1) % steps.length)
+  }, [])
+
+  const handleStepClick = useCallback((index: number) => {
+    setActiveStep(index)
+  }, [])
+
+  // Auto-advance every 7 seconds
+  useEffect(() => {
+    const interval = setInterval(nextStep, 7000)
+    return () => clearInterval(interval)
+  }, [nextStep])
+
   return (
     <section id="how-it-works" className="container py-24">
       <div className="mb-12 text-center">
@@ -73,7 +87,7 @@ export function HowItWorks() {
       </div>
 
       <div className="mb-16">
-        <Steps steps={steps} currentStep={activeStep} onStepClick={setActiveStep} />
+        <Steps steps={steps} currentStep={activeStep} onStepClick={handleStepClick} />
       </div>
 
       <div className="relative max-w-4xl mx-auto">
@@ -87,7 +101,7 @@ export function HowItWorks() {
                 key={index}
                 className="w-full flex-shrink-0"
               >
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden cursor-pointer" onClick={nextStep}>
                   <div className="relative aspect-video bg-muted flex items-center justify-center">
                     <div className="text-center p-8">
                       <p className="text-sm text-muted-foreground mb-2">
