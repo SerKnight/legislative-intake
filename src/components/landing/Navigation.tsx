@@ -8,9 +8,23 @@ export function Navigation() {
         <Link href="/" className="text-xl font-bold">
           Legislative Intake
         </Link>
+        <div className="hidden md:flex items-center gap-6">
+          <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Features
+          </Link>
+          <Link href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            How It Works
+          </Link>
+          <Link href="#use-cases" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Use Cases
+          </Link>
+          <Link href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            FAQ
+          </Link>
+        </div>
         <div className="flex items-center gap-4">
           <Link href="/login">
-            <Button variant="ghost">Sign In</Button>
+            <Button variant="ghost" className="hidden sm:inline-flex">Sign In</Button>
           </Link>
           <Link href="/signup">
             <Button>Get Started</Button>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { DocumentViewer } from "@/components/bills/DocumentViewer"
 
 export default async function BillDetailPage({
   params,
@@ -127,17 +128,10 @@ export default async function BillDetailPage({
               </div>
             </div>
           )}
-          {bill.documentUrl && (
+          {bill.documentKey && (
             <div>
               <h3 className="mb-2 font-semibold">Document</h3>
-              <a
-                href={bill.documentUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                View Document →
-              </a>
+              <DocumentViewer billId={bill.id} />
             </div>
           )}
           {bill.lastAction && (

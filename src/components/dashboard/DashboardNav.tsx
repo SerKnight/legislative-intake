@@ -11,6 +11,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/bills", label: "Bills" },
   { href: "/bills/upload", label: "Upload Bill" },
+  { href: "/settings", label: "Settings" },
 ]
 
 export function DashboardNav({ user }: { user: any }) {

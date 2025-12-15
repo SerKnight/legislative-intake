@@ -53,7 +53,7 @@ export async function getUserSessions(userId: string) {
     },
   })
 
-  return userSessions.map((us) => ({
+  return userSessions.map((us: { session: any; role: string; isActive: boolean }) => ({
     ...us.session,
     role: us.role,
     isActive: us.isActive,

@@ -7,8 +7,8 @@ const createSessionSchema = z.object({
   name: z.string().min(1),
   identifier: z.string().min(1),
   jurisdictionId: z.string().min(1),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.string().min(1), // Accept date string, will convert to Date
+  endDate: z.string().optional(),
   description: z.string().optional(),
 })
 
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    const sessions = userSessions.map((us) => ({
+    const sessions = userSessions.map((us: any) => ({
       ...us.session,
       role: us.role,
       isActive: us.isActive,
@@ -103,14 +103,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Convert date strings to Date objects
+    // Handle both date-only strings (YYYY-MM-DD) and datetime strings
+    const startDate = new Date(data.startDate)
+    if (isNaN(startDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid start date format" },
+        { status: 400 }
+      )
+    }
+
+    let endDate: Date | null = null
+    if (data.endDate) {
+      endDate = new Date(data.endDate)
+      if (isNaN(endDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid end date format" },
+          { status: 400 }
+        )
+      }
+    }
+
     // Create session
     const legislativeSession = await prisma.legislativeSession.create({
       data: {
         name: data.name,
         identifier: data.identifier,
         jurisdictionId: data.jurisdictionId,
-        startDate: new Date(data.startDate),
-        endDate: data.endDate ? new Date(data.endDate) : null,
+        startDate: startDate,
+        endDate: endDate,
         description: data.description || null,
         status: "ACTIVE",
       },

@@ -20,6 +20,13 @@ model User {
   phoneVerified Boolean   @default(false)
   image         String?
   role          UserRole  @default(USER)
+  
+  // Profile settings
+  defaultJurisdictionId String?
+  title                  String?  // e.g., "Senior Policy Analyst", "Legislative Director"
+  office                 String?  // e.g., "Office of Representative Smith"
+  bio                    String?  @db.Text
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -27,8 +34,10 @@ model User {
   sessions      Session[]
   organizations OrganizationMember[]
   userSessions  UserSession[]
+  defaultJurisdiction Jurisdiction? @relation("UserDefaultJurisdiction", fields: [defaultJurisdictionId], references: [id])
 
   @@index([email])
+  @@index([defaultJurisdictionId])
 }
 
 model Account {
@@ -81,6 +90,7 @@ model Jurisdiction {
 
   bills              Bill[]
   legislativeSessions LegislativeSession[]
+  defaultUsers       User[]             @relation("UserDefaultJurisdiction")
 
   @@index([code])
 }
@@ -199,6 +209,14 @@ model OrganizationMember {
 enum UserRole {
   USER
   ADMIN
+  LEGISLATOR
+  STAFF_DIRECTOR
+  POLICY_ANALYST
+  LEGISLATIVE_AIDE
+  COMMITTEE_STAFF
+  BUDGET_ANALYST
+  CONSTITUENT_SERVICES
+  RESEARCHER
 }
 
 enum JurisdictionType {
