@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  passwordHash  String?
+  phone         String?
+  phoneVerified Boolean   @default(false)
+  image         String?
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  organizations OrganizationMember[]
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Jurisdiction {
+  id          String   @id @default(cuid())
+  name        String
+  type        JurisdictionType
+  code        String   @unique
+  website     String?
+  apiEndpoint String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bills       Bill[]
+
+  @@index([code])
+}
+
+model Bill {
+  id              String        @id @default(cuid())
+  billNumber      String
+  title           String
+  summary         String?
+  fullText        String?       @db.Text
+  status          BillStatus    @default(INTRODUCED)
+  jurisdictionId  String
+  session         String?
+  introducedDate  DateTime?
+  lastActionDate  DateTime?
+  lastAction      String?
+
+  documentUrl     String?
+  documentKey     String?
+
+  primarySponsor  String?
+  sponsors        String[]
+  committees      String[]
+  topics          String[]
+
+  aiSummary       String?       @db.Text
+  keyProvisions   String[]
+  impactAnalysis  String?       @db.Text
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  jurisdiction    Jurisdiction  @relation(fields: [jurisdictionId], references: [id])
+  versions        BillVersion[]
+  amendments      Amendment[]
+
+  @@index([jurisdictionId])
+  @@index([status])
+  @@index([introducedDate])
+  @@index([billNumber])
+}
+
+model BillVersion {
+  id          String   @id @default(cuid())
+  billId      String
+  version     String
+  documentUrl String?
+  documentKey String?
+  fullText    String?  @db.Text
+  changes     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@index([billId])
+}
+
+model Amendment {
+  id          String   @id @default(cuid())
+  billId      String
+  number      String
+  description String?
+  documentUrl String?
+  documentKey String?
+  status      AmendmentStatus @default(PROPOSED)
+  createdAt   DateTime @default(now())
+
+  bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@index([billId])
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  plan        PlanType @default(FREE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     OrganizationMember[]
+
+  @@index([slug])
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MemberRole @default(MEMBER)
+  joinedAt       DateTime @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum JurisdictionType {
+  FEDERAL
+  STATE
+  LOCAL
+}
+
+enum BillStatus {
+  INTRODUCED
+  IN_COMMITTEE
+  PASSED_COMMITTEE
+  ON_FLOOR
+  PASSED
+  VETOED
+  ENACTED
+  FAILED
+  WITHDRAWN
+}
+
+enum AmendmentStatus {
+  PROPOSED
+  ADOPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum PlanType {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum MemberRole {
+  MEMBER
+  ADMIN
+  OWNER
+}
+
